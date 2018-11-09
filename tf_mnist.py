@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+import matplotlib.pyplot as plt
 from tensorflow.python.framework import ops
 from tensorflow.examples.tutorials.mnist import input_data
 
@@ -19,14 +21,14 @@ label_dict = {
 }
 
 #Sample 1
-
+'''
 # Get 28*28 image
-sample_1 = fashion_mnist.train_images[47].reshape(28,28)
+sample_1 = fashion_mnist.train.images[47].reshape(28,28)
 #Get corresponding integer label from one-hot encoded data
 sample_label_1 = np.where(fashion_mnist.train.labels[47] ==1)[0][0]
 
 #plot sample
-print("y={label_index} ({label})".format(label_index=sample_label_1, label=label_dict[sample_label_1])
+print("y={label_index} ({label})".format(label_index=sample_label_1, label=label_dict[sample_label_1]))
 plt.imshow(sample_1,cmap='Greys')
 
 # Get 28x28 image
@@ -36,7 +38,7 @@ sample_label_2 = np.where(fashion_mnist.train.labels[23] == 1)[0][0]
 # Plot sample
 print("y = {label_index} ({label})".format(label_index=sample_label_2, label=label_dict[sample_label_2]))
 plt.imshow(sample_2, cmap='Greys')
-
+'''
 # Network parameters
 n_hidden_1 = 128 # Units in first hidden layer
 n_hidden_2 = 128 # Units in second hidden layer
@@ -58,8 +60,8 @@ def create_placeholders(n_x, n_y):
  Y -- placeholder for the input labels, of shape [n_y, None] and dtype "float"
  '''
  
- X = tf.placeholder(tf.float32, [n_x, None], name=”X”)
- Y = tf.placeholder(tf.float32, [n_y, None], name=”Y”)
+ X = tf.placeholder(tf.float32, [n_x, None], name='X')
+ Y = tf.placeholder(tf.float32, [n_y, None], name='Y')
  
  return X, Y
 
