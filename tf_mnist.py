@@ -21,7 +21,7 @@ label_dict = {
 }
 
 #Sample 1
-
+'''
 # Get 28*28 image
 sample_1 = fashion_mnist.train.images[47].reshape(28,28)
 #Get corresponding integer label from one-hot encoded data
@@ -42,7 +42,7 @@ print("y = {label_index} ({label})".format(label_index=sample_label_2, label=lab
 plt.title(label_dict[sample_label_2])
 plt.imshow(sample_2, cmap='Greys')
 plt.show()
-
+'''
 # Network parameters
 n_hidden_1 = 128 # Units in first hidden layer
 n_hidden_2 = 128 # Units in second hidden layer
@@ -253,8 +253,8 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, 
         # Calculate accuracy on test set
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
         
-        print ("Train Accuracy:", accuracy.eval({X: train.images.T, Y: train.labels.T}))
-        print ("Test Accuracy:", accuracy.eval({X: test.images.T, Y: test.labels.T}))
+        print ("Train Accuracy\t:", accuracy.eval({X: train.images.T, Y: train.labels.T}))
+        print ("Test Accuracy\t:", accuracy.eval({X: test.images.T, Y: test.labels.T}))
         
         return parameters
 
@@ -262,4 +262,4 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, 
 train = fashion_mnist.train
 test = fashion_mnist.test
 
-parameters = model(train, test, learning_rate=0.0005)
+parameters = model(train, test, learning_rate=0.001)
