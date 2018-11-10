@@ -5,8 +5,8 @@ from tensorflow.python.framework import ops
 from tensorflow.examples.tutorials.mnist import input_data
 
 #Import Fashion MNIST
-fashion_mnist = input_data.read_data_sets('input/data', one_hot=True)
-
+fashion_mnist = input_data.read_data_sets('data/fashion', one_hot=True)
+#fashion_mnist = input_data.read_data_sets('data/fashion', source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
 label_dict = {
 	0: 'T-Shirt',
 	1: 'Trouser',
@@ -21,7 +21,7 @@ label_dict = {
 }
 
 #Sample 1
-'''
+
 # Get 28*28 image
 sample_1 = fashion_mnist.train.images[47].reshape(28,28)
 #Get corresponding integer label from one-hot encoded data
@@ -29,7 +29,9 @@ sample_label_1 = np.where(fashion_mnist.train.labels[47] ==1)[0][0]
 
 #plot sample
 print("y={label_index} ({label})".format(label_index=sample_label_1, label=label_dict[sample_label_1]))
+plt.title(label_dict[sample_label_1])
 plt.imshow(sample_1,cmap='Greys')
+plt.show()
 
 # Get 28x28 image
 sample_2 = fashion_mnist.train.images[23].reshape(28,28)
@@ -37,8 +39,10 @@ sample_2 = fashion_mnist.train.images[23].reshape(28,28)
 sample_label_2 = np.where(fashion_mnist.train.labels[23] == 1)[0][0]
 # Plot sample
 print("y = {label_index} ({label})".format(label_index=sample_label_2, label=label_dict[sample_label_2]))
+plt.title(label_dict[sample_label_2])
 plt.imshow(sample_2, cmap='Greys')
-'''
+plt.show()
+
 # Network parameters
 n_hidden_1 = 128 # Units in first hidden layer
 n_hidden_2 = 128 # Units in second hidden layer
@@ -84,15 +88,15 @@ def initialize_parameters():
     
     # Initialize weights and biases for each layer
     # First hidden layer
-    W1 = tf.get_variable("W1", [n_hidden_1, n_input], initializer=tf.contrib.layers.xavier_initializer(seed=42))
-    b1 = tf.get_variable("b1", [n_hidden_1, 1], initializer=tf.zeros_initializer())
+    W1 = tf.get_variable("W1", shape=[n_hidden_1, n_input], initializer=tf.contrib.layers.variance_scaling_initializer(seed=42))
+    b1 = tf.get_variable("b1", shape=[n_hidden_1, 1], initializer=tf.zeros_initializer())
     
     # Second hidden layer
-    W2 = tf.get_variable("W2", [n_hidden_2, n_hidden_1], initializer=tf.contrib.layers.xavier_initializer(seed=42))
-    b2 = tf.get_variable("b2", [n_hidden_2, 1], initializer=tf.zeros_initializer())
+    W2 = tf.get_variable("W2", shape=[n_hidden_2, n_hidden_1], initializer=tf.contrib.layers.variance_scaling_initializer(seed=42))
+    b2 = tf.get_variable("b2", shape=[n_hidden_2, 1], initializer=tf.zeros_initializer())
     
     # Output layer
-    W3 = tf.get_variable("W3", [n_classes, n_hidden_2], initializer=tf.contrib.layers.xavier_initializer(seed=42))
+    W3 = tf.get_variable("W3", [n_classes, n_hidden_2], initializer=tf.contrib.layers.variance_scaling_initializer(seed=42))
     b3 = tf.get_variable("b3", [n_classes, 1], initializer=tf.zeros_initializer())
     
     # Store initializations as a dictionary of parameters
@@ -158,7 +162,7 @@ def compute_cost(Z3, Y):
     
     return cost
 
-def model(train, test, learning_rate=0.0001, num_epochs=16, minibatch_size=32, print_cost=True, graph_filename='costs'):
+def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, print_cost=True, graph_filename='costs'):
     '''
     Implements a three-layer tensorflow neural network: LINEAR->RELU->LINEAR->RELU->LINEAR->SOFTMAX.
     
