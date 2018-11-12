@@ -51,21 +51,21 @@ n_classes = 10 # Fashion MNIST total classes (0–9 digits)
 n_samples = fashion_mnist.train.num_examples # Number of examples in training set 
 
 # Create placeholders
-def create_placeholders(n_x, n_y):
+def create_placeholders(num_input, num_output):
  '''
  Creates the placeholders for the tensorflow session.
  
  Arguments:
- n_x -- scalar, size of an image vector (28*28 = 784)
- n_y -- scalar, number of classes (10)
+ num_input -- scalar, size of an image vector (28*28 = 784)
+ num_output -- scalar, number of classes (10)
  
  Returns:
- X -- placeholder for the data input, of shape [n_x, None] and dtype "float"
- Y -- placeholder for the input labels, of shape [n_y, None] and dtype "float"
+ X -- placeholder for the data input, of shape [num_input, None] and dtype "float"
+ Y -- placeholder for the input labels, of shape [num_output, None] and dtype "float"
  '''
  
- X = tf.placeholder(tf.float32, [n_x, None], name='X')
- Y = tf.placeholder(tf.float32, [n_y, None], name='Y')
+ X = tf.placeholder(tf.float32, [num_input, None], name='X')
+ Y = tf.placeholder(tf.float32, [num_output, None], name='Y')
  
  return X, Y
 
@@ -108,6 +108,13 @@ def initialize_parameters():
         "W3": W3,
         "b3": b3
     }
+    
+    w_h_1 = tf.summary.histogram("weights",W1)
+    b_h_1 = tf.summary.histogram("bias",b1)
+    w_h_2 = tf.summary.histogram("weights",W2)
+    b_h_2 = tf.summary.histogram("bias",b2)
+    w_h_3 = tf.summary.histogram("weights",W3)
+    b_h_3 = tf.summary.histogram("bias",b3)
     
     return parameters
 
@@ -158,11 +165,13 @@ def compute_cost(Z3, Y):
     labels = tf.transpose(Y)
     
     # Compute cost
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))
+    cost_function = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=logits, labels=labels))
+    with tf.name_scope("cost_function"):
+    	tf.summary.scalar("cost_function", cost_function)
     
-    return cost
+    return cost_function
 
-def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, print_cost=True, graph_filename='costs'):
+def model(train, test, learning_rate=0.0001, num_epochs=100, sizeMiniBatch=32, print_cost=True, graph_filename='costs', dest = r"C:\tmp\tensorflow_logs"):
     '''
     Implements a three-layer tensorflow neural network: LINEAR->RELU->LINEAR->RELU->LINEAR->SOFTMAX.
     
@@ -171,7 +180,7 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, 
     test -- test set
     learning_rate -- learning rate of the optimization
     num_epochs -- number of epochs of the optimization loop
-    minibatch_size -- size of a minibatch
+    sizeMiniBatch -- size of a minibatch
     print_cost -- True to print the cost every epoch
     
     Returns:
@@ -184,47 +193,53 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, 
     tf.set_random_seed(42)
     seed = 42
     # Get input and output shapes
-    (n_x, m) = train.images.T.shape
-    n_y = train.labels.T.shape[0]
+    (num_input, num_training) = train.images.T.shape
+    num_output = train.labels.T.shape[0]
     
     costs = []
     
-    # Create placeholders of shape (n_x, n_y)
-    X, Y = create_placeholders(n_x, n_y)
+    # Create placeholders of shape (num_input, num_output)
+    X, Y = create_placeholders(num_input, num_output)
     # Initialize parameters
     parameters = initialize_parameters()
     
     # Forward propagation
     Z3 = forward_propagation(X, parameters)
     # Cost function
-    cost = compute_cost(Z3, Y)
+    cost_function = compute_cost(Z3, Y)
     # Backpropagation (using Adam optimizer)
-    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost_function)
     
     # Initialize variables
     init = tf.global_variables_initializer()
     
+    # Merge all the summaries
+    merge_summary = tf.summary.merge_all()
+
     # Start session to compute Tensorflow graph
     with tf.Session() as sess:
         
         # Run initialization
         sess.run(init)
+        summary_writer = tf.summary.FileWriter(dest, graph = sess.graph)
+        counter = 0
         
         # Training loop
         for epoch in range(num_epochs):
             
             epoch_cost = 0.
-            num_minibatches = int(m / minibatch_size)
+            num_minibatches = int(num_training / sizeMiniBatch)
             seed = seed + 1
-            
+           
             for i in range(num_minibatches):
                 
                 # Get next batch of training data and labels
-                minibatch_X, minibatch_Y = train.next_batch(minibatch_size)
-                
+                minibatch_X, minibatch_Y = train.next_batch(sizeMiniBatch)
+                counter += 1
                 # Execute optimizer and cost function
-                _, minibatch_cost = sess.run([optimizer, cost], feed_dict={X: minibatch_X.T, Y: minibatch_Y.T})
-                
+                summary, _ , minibatch_cost = sess.run([ merge_summary, optimizer, cost_function], feed_dict={X: minibatch_X.T, Y: minibatch_Y.T})
+                summary_writer.add_summary(summary,counter)
+ 
                 # Update epoch cost
                 epoch_cost += minibatch_cost / num_minibatches
                 
@@ -237,29 +252,30 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, minibatch_size=32, 
         plt.figure(figsize=(16,5))
         plt.plot(np.squeeze(costs), color='#2A688B')
         plt.xlim(0, num_epochs-1)
-        plt.ylabel("cost")
+        plt.ylabel("cost_function")
         plt.xlabel("iterations")
         plt.title("learning rate = {rate}".format(rate=learning_rate))
         plt.savefig(graph_filename, dpi=300)
         plt.show()
-        
+ 
         # Save parameters
         parameters = sess.run(parameters)
         print("Parameters have been trained!")
         
         # Calculate correct predictions
+        # Z3 is the predicted, and Y is the true label
         correct_prediction = tf.equal(tf.argmax(Z3), tf.argmax(Y))
         
         # Calculate accuracy on test set
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
         
-        print ("Train Accuracy\t:", accuracy.eval({X: train.images.T, Y: train.labels.T}))
-        print ("Test Accuracy\t:", accuracy.eval({X: test.images.T, Y: test.labels.T}))
+        print ("[Train Accuracy\t]:", accuracy.eval({X: train.images.T, Y: train.labels.T}))
+        print ("[Test Accurac\t]:", accuracy.eval({X: test.images.T, Y: test.labels.T}))
         
         return parameters
 
-# Running our model
+# Running the model
 train = fashion_mnist.train
 test = fashion_mnist.test
 
-parameters = model(train, test, learning_rate=0.001)
+parameters = model(train, test, learning_rate=0.005, num_epochs=10, sizeMiniBatch=32, dest = r"C:\tmp\tensorflow_logs\run2")
