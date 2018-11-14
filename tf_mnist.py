@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from tensorflow.python.framework import ops
 from tensorflow.examples.tutorials.mnist import input_data
 
-#Import Fashion MNIST
+#Import Fashion MNIST with one hot encoding
 fashion_mnist = input_data.read_data_sets('data/fashion', one_hot=True)
 #fashion_mnist = input_data.read_data_sets('data/fashion', source_url='http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/')
 label_dict = {
@@ -43,6 +43,7 @@ plt.title(label_dict[sample_label_2])
 plt.imshow(sample_2, cmap='Greys')
 plt.show()
 '''
+
 # Network parameters
 n_hidden_1 = 128 # Units in first hidden layer
 n_hidden_2 = 128 # Units in second hidden layer
@@ -88,6 +89,9 @@ def initialize_parameters():
     
     # Initialize weights and biases for each layer
     # First hidden layer
+    # TRYME
+    # Xavier initializiation --- xavier_initializer.
+    # He initialization --- variance_scaling_initializer
     W1 = tf.get_variable("W1", shape=[n_hidden_1, n_input], initializer=tf.contrib.layers.variance_scaling_initializer(seed=42))
     b1 = tf.get_variable("b1", shape=[n_hidden_1, 1], initializer=tf.zeros_initializer())
     
@@ -118,6 +122,68 @@ def initialize_parameters():
     
     return parameters
 
+def conv(X, parameters):
+    '''
+    Implements the forward propagation for the model: 
+    CNN -> RELU -> CNN -> RELU -> CNN -> SOFTMAX
+    
+    Arguments:
+    # Input Layer
+    # Reshape X to 4-D tensor: [batch_size, width, height, channels]
+    # MNIST images are 28x28 pixels, and have one color channel
+
+    # Convolutional Layer #1
+    # Computes 32 features using a 2x2 filter with ReLU activation.
+    # Padding is added to preserve width and height.
+    # Input Tensor Shape: [batch_size, 28, 28, 1]
+    # Output Tensor Shape: [batch_size, 28, 28, 32]
+    '''
+
+    # 1st CNN layer
+    input_layer = tf.reshape(features["x"], [-1, 28, 28, 1])
+    conv1 = tf.layers.conv2d(
+        inputs=input_layer,
+        filters=32,
+        kernel_size=[2, 2],
+        padding="same",
+        activation=tf.nn.relu)    
+
+	# Pooling Layer #1
+    # First max pooling layer with a 2x2 filter and stride of 2
+    # Input Tensor Shape: [batch_size, 28, 28, 32]
+    # Output Tensor Shape: [batch_size, 14, 14, 32]
+    pool1 = tf.layers.max_pooling2d(inputs=conv1, pool_size=[2, 2], strides=2)
+
+    # 2nd CNN layer 
+    conv2 = tf.layers.conv2d(
+        inputs=pool1,
+        filters=64,
+        kernel_size=[2, 2],
+        padding="same",
+        activation=tf.nn.relu)
+
+    pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
+
+
+    # Retrieve parameters from dictionary
+    W1 = parameters['W1']
+    b1 = parameters['b1']
+    W2 = parameters['W2']
+    b2 = parameters['b2']
+    W3 = parameters['W3']
+    b3 = parameters['b3']
+    
+    # Carry out forward propagation   
+    # TRYME: relu or swish   
+    Z1 = tf.add(tf.matmul(W1,X), b1)     
+    A1 = tf.nn.relu(Z1)                  
+    Z2 = tf.add(tf.matmul(W2,A1), b2)    
+    A2 = tf.nn.relu(Z2)                  
+    Z3 = tf.add(tf.matmul(W3,A2), b3) 
+    print("check the shape of Z3: ", Z3.shape)
+    
+    return Z3
+
 def forward_propagation(X, parameters):
     '''
     Implements the forward propagation for the model: 
@@ -139,12 +205,14 @@ def forward_propagation(X, parameters):
     W3 = parameters['W3']
     b3 = parameters['b3']
     
-    # Carry out forward propagation      
+    # Carry out forward propagation   
+    # TRYME: relu or swish   
     Z1 = tf.add(tf.matmul(W1,X), b1)     
     A1 = tf.nn.relu(Z1)                  
     Z2 = tf.add(tf.matmul(W2,A1), b2)    
     A2 = tf.nn.relu(Z2)                  
-    Z3 = tf.add(tf.matmul(W3,A2), b3)    
+    Z3 = tf.add(tf.matmul(W3,A2), b3) 
+    print("check the shape of Z3: #109", Z3.shape)
     
     return Z3
 
@@ -207,7 +275,9 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, sizeMiniBatch=32, p
     Z3 = forward_propagation(X, parameters)
     # Cost function
     cost_function = compute_cost(Z3, Y)
+    
     # Backpropagation (using Adam optimizer)
+    # TRYME: with AdamOptimizer or AdagradOptimizer
     optimizer = tf.train.AdamOptimizer(learning_rate).minimize(cost_function)
     
     # Initialize variables
@@ -278,4 +348,4 @@ def model(train, test, learning_rate=0.0001, num_epochs=100, sizeMiniBatch=32, p
 train = fashion_mnist.train
 test = fashion_mnist.test
 
-parameters = model(train, test, learning_rate=0.005, num_epochs=10, sizeMiniBatch=32, dest = r"C:\tmp\tensorflow_logs\run2")
+parameters = model(train, test, learning_rate=0.0001, num_epochs=100, sizeMiniBatch=32, dest = r"C:\tmp\tensorflow_logs\lr_1e-4_he_initializer")
